@@ -22,11 +22,11 @@
  	require_once(__CA_LIB_DIR__.'/core/Zend/Mail.php');
  	require_once(__CA_LIB_DIR__.'/core/Zend/Mail/Storage/Imap.php');
 
-    require_once(__CA_APP_DIR__.'/plugins/horusConditionReportForCA/lib/fCore.php');
-    require_once(__CA_APP_DIR__.'/plugins/horusConditionReportForCA/lib/fEmail.php');
-    require_once(__CA_APP_DIR__.'/plugins/horusConditionReportForCA/lib/fMailbox.php');
+    require_once(__CA_APP_DIR__.'/plugins/horusConditionReport/lib/fCore.php');
+    require_once(__CA_APP_DIR__.'/plugins/horusConditionReport/lib/fEmail.php');
+    require_once(__CA_APP_DIR__.'/plugins/horusConditionReport/lib/fMailbox.php');
 
-	class horusConditionReportForCAPlugin extends BaseApplicationPlugin {
+	class horusConditionReportPlugin extends BaseApplicationPlugin {
 		# -------------------------------------------------------
 		private $opo_config;
 		private $opo_client_services_config;
@@ -35,7 +35,7 @@
 			$this->description = _t('Accepts submissions of condition reports via email.');
 			parent::__construct();
 			
-			$this->opo_config = Configuration::load($ps_plugin_path.'/conf/horusConditionReportForCA.conf');
+			$this->opo_config = Configuration::load($ps_plugin_path.'/conf/horusConditionReport.conf');
 
         }
 		# -------------------------------------------------------
@@ -82,6 +82,7 @@
 
                 $imap = new fMailbox("imap", $vs_server, $vs_username, $vs_password, $port=$vs_port, $secure=true, $timeout=600);
                 $va_messages=$imap->listMessages();
+                var_dump($va_messages);
 
 
 				$va_mails_to_delete = array();
@@ -114,7 +115,7 @@
                             $filename = preg_replace('/\s+/', '_', $attachment["filename"]);
                             $vs_file_path = caGetTempDirPath().'/'.$filename;
                             if (file_put_contents($vs_file_path, $attachment["data"])) {
-                                print "Attachment ". $attachment["filename"]." downloaded\n";
+                                print "ATTACHMENT ". $attachment["filename"]." downloaded to ".$vs_file_path."\n";
 
                                 // Create record (ca_objects or ca_occurrences)
                                 $record_table = $this->opo_config->get('record_table');
@@ -132,6 +133,7 @@
                                 );
                                 DataMigrationUtils::postError($t_record, "While adding label", "horusConditionReportForCAPlugin");  // TODO: log this
 
+								var_dump($vs_file_path);die();
                                 $t_record->addRepresentation($vs_file_path, $this->opo_config->get('representation_type'), 1, $this->opo_config->get('default_status'), $this->opo_config->get('default_access'), true, null, array("type_id"=>$this->opo_config->get('relationship_type_id'), "original_filename"=>$filename));
                                 DataMigrationUtils::postError($t_record, "While adding media", "horusConditionReportForCAPlugin");  // TODO: log this
 
@@ -153,7 +155,8 @@
                 }
 				// TODO : Remove from server
 				foreach($va_mails_to_delete as $vn_mail_to_delete) {
-                    $imap->deleteMessages(array(["uid"]));
+					print "Deleting email [UID ".$vn_mail_to_delete."]...\n";
+                    //$imap->deleteMessages(array($vn_mail_to_delete));
                 }
 			return true;
 		}
