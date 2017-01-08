@@ -82,7 +82,7 @@
 
                 $imap = new fMailbox("imap", $vs_server, $vs_username, $vs_password, $port=$vs_port, $secure=true, $timeout=600);
                 $va_messages=$imap->listMessages();
-                var_dump($va_messages);
+                //var_dump($va_messages);
 
 
 				$va_mails_to_delete = array();
@@ -133,9 +133,21 @@
                                 );
                                 DataMigrationUtils::postError($t_record, "While adding label", "horusConditionReportForCAPlugin");  // TODO: log this
 
-								var_dump($vs_file_path);die();
+								//var_dump($vs_file_path);die();
                                 $t_record->addRepresentation($vs_file_path, $this->opo_config->get('representation_type'), 1, $this->opo_config->get('default_status'), $this->opo_config->get('default_access'), true, null, array("type_id"=>$this->opo_config->get('relationship_type_id'), "original_filename"=>$filename));
                                 DataMigrationUtils::postError($t_record, "While adding media", "horusConditionReportForCAPlugin");  // TODO: log this
+                                
+                                $t_linked_object = new ca_objects();
+                                $t_linked_object->load(array('idno' => $vs_idno));
+                                $vn_object_id = $t_linked_object->get('object_id') * 1 ;
+                                if($vn_object_id) {
+	                                $t_rel_type = new ca_relationship_types(); // create an instance
+									$rel_type_id = $t_rel_type->getRelationshipTypeID('ca_objects_x_occurrences', 'isReferencedBy'); // get id for type_code 'artist' in relationship ca_objects_x_entities
+	                                $t_linked_object->setMode(ACCESS_WRITE);
+	                                $t_linked_object->addRelationship('ca_objects_x_occurrences',$t_record->get("occurrence_id"),$rel_type_id);
+	                                $t_linked_object->update();
+                                }
+                                //$t_record->addRelationship('ca_objects',,"isReferencedBy");
 
                             } else {
                                 print "Probleme writing file : ".$vs_file_path."\n";
@@ -156,7 +168,7 @@
 				// TODO : Remove from server
 				foreach($va_mails_to_delete as $vn_mail_to_delete) {
 					print "Deleting email [UID ".$vn_mail_to_delete."]...\n";
-                    //$imap->deleteMessages(array($vn_mail_to_delete));
+                    $imap->deleteMessages(array($vn_mail_to_delete));
                 }
 			return true;
 		}
